@@ -4,7 +4,7 @@ set -eux
 
 # Search queries
 SEARCH_QUERIES=('"last night I dreamed"' '"dream last night"' '"last night, I dreamed"' \
-    '"last night I had a dream"' '"dream last night"' '"dreams last night"' '"dreamed last night"')
+    '"last night I had a dream"' '"dreamed last night"' '"dreams last night"' '"dreamed last night"')
 
 # SQLite path
 DB_FILE="posts.db"
