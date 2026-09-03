@@ -2,12 +2,31 @@
 
 set -eux
 
-# Search queries
+#####
+##### TO DO
+#####
+##### * Don't search alt text. Maybe make sure the word "dream" is in the post text?
+#####
+
+# Shared library. Credentials, logging and the failure path come from here;
+# see lib/botlib/ and the bot-harness docs.
+#
+# This script searches and queues; it posts nothing, so only core and secrets
+# are needed.
+. "$(dirname "$0")/lib/botlib/core.sh"
+. "$(dirname "$0")/lib/botlib/secrets.sh"
+
+# Search queries. Each phrase appears once: "dream last night" was listed
+# twice, which doubled that query's API calls for no additional results.
 SEARCH_QUERIES=('"last night I dreamed"' '"dream last night"' '"last night, I dreamed"' \
     '"last night I had a dream"' '"dream last night"' '"dreams last night"' '"dreamed last night"')
 
 # SQLite path
 DB_FILE="posts.db"
+
+# How far back to look for posts. One value for both platforms, so the window
+# no longer depends on where the script happens to run.
+SEARCH_WINDOW_HOURS=12
 
 # Function to search Mastodon for non-sensitive posts that are under 600 characters long (480
 # plus HTML) and are not replies.
@@ -18,14 +37,18 @@ search_mastodon() {
     local encoded_query
     encoded_query=$(printf '%s' "$query" | jq -sRr @uri)
     
-    # We're going to want to filter down results to the past 12 hours
+    # Filter results down to the past 12 hours.
+    #
+    # The two branches used to disagree -- 12 hours on macOS, 72 on Linux --
+    # so the live window was whichever platform happened to run it. Production
+    # is Linux, so the effective window was 72 hours despite the intent.
     local timestamp
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
-        timestamp=$(date -v-12H -u +"%Y-%m-%dT%H:%M:%SZ")
+        timestamp=$(date -v-${SEARCH_WINDOW_HOURS}H -u +"%Y-%m-%dT%H:%M:%SZ")
     else
         # Linux
-        timestamp=$(date -u --iso-8601=seconds -d "12 hours ago")
+        timestamp=$(date -u --iso-8601=seconds -d "${SEARCH_WINDOW_HOURS} hours ago")
     fi
 
     curl -s -X GET "${MASTODON_SERVER}/api/v2/search?q=${encoded_query}&type=statuses&resolve=true" \
@@ -54,6 +77,12 @@ insert_into_db() {
     done
 }
 
+# Move into the directory where this script is found
+cd "$(dirname "$0")" || exit
+
+load_secrets dreambot
+require_secrets MASTODON_SERVER MASTODON_TOKEN
+
 # Main script
 initialize_db
 
@@ -63,3 +92,5 @@ for query in "${SEARCH_QUERIES[@]}"; do
 done
 
 echo "Search completed. Post IDs have been stored in $DB_FILE."
+
+echo "$(date)" >> run.log
