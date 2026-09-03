@@ -19,7 +19,7 @@ set -eux
 # Search queries. Each phrase appears once: "dream last night" was listed
 # twice, which doubled that query's API calls for no additional results.
 SEARCH_QUERIES=('"last night I dreamed"' '"dream last night"' '"last night, I dreamed"' \
-    '"last night I had a dream"' '"dream last night"' '"dreams last night"' '"dreamed last night"')
+    '"last night I had a dream"' '"dreams last night"' '"dreamed last night"')
 
 # SQLite path
 DB_FILE="posts.db"
