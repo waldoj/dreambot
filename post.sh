@@ -41,7 +41,7 @@ fi
 # post could then never be retried. masto_reblog uses -f, so a failure now
 # stops the script with the row left queued.
 masto_reblog "$POST_ID" > /dev/null \
-    || exit_error "Reposting message on Mastodon failed"
+    || exit_error "Reposting message on Mastodon failed: HTTP ${BOTLIB_LAST_STATUS} ${BOTLIB_LAST_BODY}"
 
 echo "Repost succeeded"
 sqlite3 "$DB_FILE" "UPDATE posts SET status='published' WHERE id=${POST_ID}"
